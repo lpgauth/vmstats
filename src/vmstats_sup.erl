@@ -3,7 +3,7 @@
 
 %% public
 -export([
-    start_link/1
+    start_link/0
 ]).
 
 %% private
@@ -14,9 +14,11 @@
 -define(CHILD(I, Args), {I, {I, start_link, Args}, permanent, 5000, worker, [I]}).
 
 %% public
-start_link(BaseKey) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, BaseKey).
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% private
-init(BaseKey) ->
-    {ok, {{one_for_all,5,3600}, [?CHILD(vmstats_server, [BaseKey])]}}.
+init([]) ->
+    {ok, {{one_for_all,5,3600}, [
+        ?CHILD(vmstats_server, [])]
+    }}.

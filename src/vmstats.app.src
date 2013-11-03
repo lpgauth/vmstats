@@ -16,5 +16,8 @@
       vmstats,
       vmstats_sup,
       vmstats_server
+  ]},
+  {env, [
+      {base_key, <<"vmstats">>}
   ]}
 ]}.
