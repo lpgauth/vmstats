@@ -1,6 +1,6 @@
 {application, vmstats, [
   {description, "Tiny application to gather VM statistics for StatsD client"},
-  {vsn, "0.3.0"},
+  {vsn, "0.3.1"},
   {registered, [
       vmstats_sup,
       vmstats_server
