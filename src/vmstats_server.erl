@@ -121,9 +121,6 @@ terminate(_Reason, _State) ->
     ok.
 
 %% private
-bytes_to_megabytes(Bytes) ->
-    Bytes / 1048576.
-
 init_system_stats() ->
     case system_stats:supported_os() of
         undefined ->
@@ -133,6 +130,9 @@ init_system_stats() ->
             SystemStats2 = system_stats:proc_stat(SystemStats),
             system_stats:proc_pidstat(os:getpid(), SystemStats2)
     end.
+
+bytes_to_megabytes(Bytes) ->
+    Bytes / 1048576.
 
 gc_stats() ->
     erlang:statistics(garbage_collection).
