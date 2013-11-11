@@ -1,9 +1,9 @@
 {application, vmstats, [
   {description, "Tiny application to gather VM statistics for StatsD client"},
-  {vsn, "0.3.1"},
+  {vsn, "0.3.2"},
   {registered, [
-      vmstats_sup,
-      vmstats_server
+    vmstats_sup,
+    vmstats_server
   ]},
   {applications, [
     kernel,
@@ -13,11 +13,11 @@
   {mod, {vmstats, []}},
   {applications, [statsderl]},
   {modules, [
-      vmstats,
-      vmstats_sup,
-      vmstats_server
+    vmstats,
+    vmstats_sup,
+    vmstats_server
   ]},
-  {env, [
-      {base_key, <<"vmstats">>}
+    {env, [
+    {base_key, <<"vmstats">>}
   ]}
 ]}.
