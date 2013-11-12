@@ -25,6 +25,7 @@
     base_key :: iolist(),
     gc_stats :: {NumberGcs::integer(), WordsReclaimed::integer(), 0},
     io_stats :: {Input::integer(), Output::integer()},
+    scheduler_stats,
     system_stats :: #stats {},
     timer_ref :: reference()
 }).
@@ -44,6 +45,7 @@ init([]) ->
         base_key = BaseKey,
         gc_stats = gc_stats(),
         io_stats = io_stats(),
+        scheduler_stats = init_scheduler_stats(),
         system_stats = init_system_stats(),
         timer_ref = erlang:start_timer(?DELAY, self(), ?TIMER_MSG)
     }}.
@@ -58,6 +60,7 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
         base_key = BaseKey,
         gc_stats = {NumberGCs, WordsReclaimed, _},
         io_stats = {IoInput, IoOutput},
+        scheduler_stats = SchedulerStats,
         system_stats = SystemStats,
         timer_ref = TimerRef
     } = State) ->
@@ -105,9 +108,20 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
     % system stats
     SystemStats2 = system_stats(BaseKey, SystemStats),
 
+    % scheduler_wall_time
+    SchedulerStats2 = scheduler_stats(),
+    ShedulerUtils = lists:map(fun({{I, A0, T0}, {I, A1, T1}}) ->
+	    {I, (A1 - A0)/(T1 - T0)}
+    end, lists:zip(SchedulerStats, SchedulerStats2)),
+    lists:map(fun (SchedulerId, ShedulerUtil) ->
+        SchedulerIdBin = integer_to_binary(SchedulerId),
+        statsderl:gauge([BaseKey, <<"scheduler_utilization.">>, SchedulerIdBin], ShedulerUtil, 1.00)
+    end, ShedulerUtils),
+
     {noreply, State#state {
         gc_stats = GCStats,
         io_stats = IoStats,
+        scheduler_stats = SchedulerStats2,
         system_stats = SystemStats2,
         timer_ref = erlang:start_timer(?DELAY, self(), ?TIMER_MSG)
     }};
@@ -121,6 +135,10 @@ terminate(_Reason, _State) ->
     ok.
 
 %% private
+init_scheduler_stats() ->
+    erlang:system_flag(scheduler_wall_time, true),
+    lists:sort(erlang:statistics(scheduler_wall_time)).
+
 init_system_stats() ->
     case system_stats:supported_os() of
         undefined ->
@@ -149,6 +167,9 @@ messages_in_queues() ->
                 Count + Acc
         end
     end, 0, processes()).
+
+scheduler_stats() ->
+    lists:sort(erlang:statistics(scheduler_wall_time)).
 
 system_stats(BaseKey, SystemStats) ->
     case system_stats:supported_os() of
