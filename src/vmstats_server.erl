@@ -113,7 +113,7 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
     ShedulerUtils = lists:map(fun({{I, A0, T0}, {I, A1, T1}}) ->
 	    {I, (A1 - A0)/(T1 - T0)}
     end, lists:zip(SchedulerStats, SchedulerStats2)),
-    lists:map(fun (SchedulerId, ShedulerUtil) ->
+    lists:map(fun ({SchedulerId, ShedulerUtil}) ->
         SchedulerIdBin = integer_to_binary(SchedulerId),
         statsderl:gauge([BaseKey, <<"scheduler_utilization.">>, SchedulerIdBin], ShedulerUtil, 1.00)
     end, ShedulerUtils),
