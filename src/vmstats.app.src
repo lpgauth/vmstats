@@ -12,7 +12,7 @@
   ]},
   {mod, {vmstats, []}},
   {applications, [
-    statsderl
+    kernel, stdlib, statsderl
   ]},
   {modules, [
     vmstats,
