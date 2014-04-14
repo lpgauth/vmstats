@@ -11,9 +11,6 @@
     statsderl
   ]},
   {mod, {vmstats, []}},
-  {applications, [
-    kernel, stdlib, statsderl
-  ]},
   {modules, [
     vmstats,
     vmstats_sup,
