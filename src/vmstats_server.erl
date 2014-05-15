@@ -22,6 +22,7 @@
 -define(TIMER_MSG, '#delay').
 
 -record(state, {
+    tstamp :: erlang:timestamp(),
     base_key :: iolist(),
     gc_stats :: {NumberGcs::integer(), WordsReclaimed::integer(), 0},
     io_stats :: {Input::integer(), Output::integer()},
@@ -42,6 +43,7 @@ init([]) ->
     end,
 
     {ok, #state {
+        tstamp = os:timestamp(),
         base_key = BaseKey,
         gc_stats = gc_stats(),
         io_stats = io_stats(),
@@ -57,6 +59,7 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
+        tstamp = Timestamp,
         base_key = BaseKey,
         gc_stats = {NumberGCs, WordsReclaimed, _},
         io_stats = {IoInput, IoOutput},
@@ -64,6 +67,10 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
         system_stats = SystemStats,
         timer_ref = TimerRef
     } = State) ->
+
+    % uptime
+    Uptime = timer:now_diff(os:timestamp(), Timestamp) / 60000000,
+    statsderl:gauge([BaseKey, <<"uptime_minutes">>], Uptime, 1.00),
 
     % processes
     statsderl:gauge([BaseKey, <<"proc_count">>], erlang:system_info(process_count), 1.00),
@@ -111,8 +118,9 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
     % scheduler_wall_time
     SchedulerStats2 = scheduler_stats(),
     ShedulerUtils = lists:map(fun({{I, A0, T0}, {I, A1, T1}}) ->
-	    {I, (A1 - A0)/(T1 - T0)}
+	    {I, (A1 - A0) / (T1 - T0)}
     end, lists:zip(SchedulerStats, SchedulerStats2)),
+
     lists:map(fun ({SchedulerId, ShedulerUtil}) ->
         SchedulerIdBin = integer_to_binary(SchedulerId),
         statsderl:gauge([BaseKey, <<"scheduler_utilization.">>, SchedulerIdBin], ShedulerUtil, 1.00)
