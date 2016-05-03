@@ -76,14 +76,11 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
     statsderl:gauge([BaseKey, <<"proc_count">>], erlang:system_info(process_count), 1.00),
     statsderl:gauge([BaseKey, <<"proc_limit">>], erlang:system_info(process_limit), 1.00),
 
-    % messages in queues
-    statsderl:gauge([BaseKey , <<"messages_in_queues">>], messages_in_queues(), 1.00),
-
     % modules loaded
     statsderl:gauge([BaseKey, <<"modules">>], length(code:all_loaded()), 1.00),
 
     % run queue
-    statsderl:gauge([BaseKey, <<"run_queue">>], erlang:statistics(run_queue), 1.00),
+    statsderl:gauge([BaseKey, <<"run_queue">>], erlang:statistics(total_run_queue_lengths), 1.00),
 
     % error_logger message queue length
     {_, MessageQueueLength} = process_info(whereis(error_logger), message_queue_len),
@@ -126,6 +123,20 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
         statsderl:gauge([BaseKey, <<"scheduler_utilization.">>, SchedulerIdBin], ShedulerUtil, 1.00)
     end, ShedulerUtils),
 
+	% active_tasks
+	lists:foldl(fun(ActiveTasks, SchedulerId) ->
+        SchedulerIdBin = integer_to_binary(SchedulerId),
+		statsderl:gauge([BaseKey, <<"active_tasks.">>, SchedulerIdBin], ActiveTasks, 1.00),
+		SchedulerId + 1
+	end, 1, erlang:statistics(active_tasks)),
+
+	% run_queue_lengths
+	lists:foldl(fun(RunQueueLengths, SchedulerId) ->
+        SchedulerIdBin = integer_to_binary(SchedulerId),
+		statsderl:gauge([BaseKey, <<"run_queue_lengths.">>, SchedulerIdBin], RunQueueLengths, 1.00),
+		SchedulerId + 1
+	end, 1, erlang:statistics(run_queue_lengths)),
+
     {noreply, State#state {
         gc_stats = GCStats,
         io_stats = IoStats,
@@ -166,15 +177,6 @@ gc_stats() ->
 io_stats() ->
     {{input, IoInput}, {output, IoOutput}} = erlang:statistics(io),
     {IoInput, IoOutput}.
-
-messages_in_queues() ->
-    lists:foldl(fun(Pid, Acc) ->
-        case process_info(Pid, message_queue_len) of
-            undefined -> Acc;
-            {message_queue_len, Count} ->
-                Count + Acc
-        end
-    end, 0, processes()).
 
 scheduler_stats() ->
     lists:sort(erlang:statistics(scheduler_wall_time)).
