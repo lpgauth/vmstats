@@ -141,12 +141,14 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
 
     statsderl:timing_now([BaseKey, "server_timing"], Timestamp2, 1.00),
 
+    Delta = unix_tstamp_ms() rem ?DELAY,
+
     {noreply, State#state {
         gc_stats = GCStats,
         io_stats = IoStats,
         scheduler_stats = SchedulerStats2,
         system_stats = SystemStats2,
-        timer_ref = erlang:start_timer(?DELAY, self(), ?TIMER_MSG)
+        timer_ref = erlang:start_timer(?DELAY - Delta, self(), ?TIMER_MSG)
     }};
 handle_info(_Msg, State) ->
     {noreply, State}.
@@ -211,3 +213,7 @@ system_stats(BaseKey, SystemStats) ->
 
             SystemStats4
     end.
+
+unix_tstamp_ms() ->
+    {Mega, Sec, Micro} = os:timestamp(),
+    (Mega * 1000000000 + Sec * 1000) + trunc(Micro / 1000).
