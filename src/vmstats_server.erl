@@ -68,8 +68,10 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
         timer_ref = TimerRef
     } = State) ->
 
+    Timestamp2 = os:timestamp(),
+
     % uptime
-    Uptime = timer:now_diff(os:timestamp(), Timestamp) / 60000000,
+    Uptime = timer:now_diff(Timestamp2, Timestamp) / 60000000,
     statsderl:gauge([BaseKey, <<"uptime_minutes">>], Uptime, 1.00),
 
     % processes
@@ -123,19 +125,21 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
         statsderl:gauge([BaseKey, <<"scheduler_utilization.">>, SchedulerIdBin], ShedulerUtil, 1.00)
     end, ShedulerUtils),
 
-	% active_tasks
-	lists:foldl(fun(ActiveTasks, SchedulerId) ->
-        SchedulerIdBin = integer_to_binary(SchedulerId),
-		statsderl:gauge([BaseKey, <<"active_tasks.">>, SchedulerIdBin], ActiveTasks, 1.00),
-		SchedulerId + 1
-	end, 1, erlang:statistics(active_tasks)),
+  	% active_tasks
+  	lists:foldl(fun(ActiveTasks, SchedulerId) ->
+          SchedulerIdBin = integer_to_binary(SchedulerId),
+  		statsderl:gauge([BaseKey, <<"active_tasks.">>, SchedulerIdBin], ActiveTasks, 1.00),
+  		SchedulerId + 1
+  	end, 1, erlang:statistics(active_tasks)),
 
-	% run_queue_lengths
-	lists:foldl(fun(RunQueueLengths, SchedulerId) ->
-        SchedulerIdBin = integer_to_binary(SchedulerId),
-		statsderl:gauge([BaseKey, <<"run_queue_lengths.">>, SchedulerIdBin], RunQueueLengths, 1.00),
-		SchedulerId + 1
-	end, 1, erlang:statistics(run_queue_lengths)),
+  	% run_queue_lengths
+  	lists:foldl(fun(RunQueueLengths, SchedulerId) ->
+          SchedulerIdBin = integer_to_binary(SchedulerId),
+  		statsderl:gauge([BaseKey, <<"run_queue_lengths.">>, SchedulerIdBin], RunQueueLengths, 1.00),
+  		SchedulerId + 1
+  	end, 1, erlang:statistics(run_queue_lengths)),
+
+    statsderl:timing_now([BaseKey, "server_timing"], Timestamp2, 1.00),
 
     {noreply, State#state {
         gc_stats = GCStats,
