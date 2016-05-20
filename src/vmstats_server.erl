@@ -88,14 +88,14 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
     {_, MessageQueueLength} = process_info(whereis(error_logger), message_queue_len),
     statsderl:gauge([BaseKey, <<"error_logger_queue_len">>], MessageQueueLength, 1.00),
 
-    % vm memory usage
-    MemoryKey = [BaseKey, <<"memory.">>],
-    Memory = erlang:memory(),
-    statsderl:gauge([MemoryKey, <<"total">>], bytes_to_megabytes(proplists:get_value(total, Memory)), 1.00),
-    statsderl:gauge([MemoryKey, <<"procs_used">>], bytes_to_megabytes(proplists:get_value(processes_used, Memory)), 1.00),
-    statsderl:gauge([MemoryKey, <<"atom_used">>], bytes_to_megabytes(proplists:get_value(atom_used, Memory)), 1.00),
-    statsderl:gauge([MemoryKey, <<"binary">>], bytes_to_megabytes(proplists:get_value(binary, Memory)), 1.00),
-    statsderl:gauge([MemoryKey, <<"ets">>], bytes_to_megabytes(proplists:get_value(ets, Memory)), 1.00),
+    % % vm memory usage
+    % MemoryKey = [BaseKey, <<"memory.">>],
+    % Memory = erlang:memory(),
+    % statsderl:gauge([MemoryKey, <<"total">>], bytes_to_megabytes(proplists:get_value(total, Memory)), 1.00),
+    % statsderl:gauge([MemoryKey, <<"procs_used">>], bytes_to_megabytes(proplists:get_value(processes_used, Memory)), 1.00),
+    % statsderl:gauge([MemoryKey, <<"atom_used">>], bytes_to_megabytes(proplists:get_value(atom_used, Memory)), 1.00),
+    % statsderl:gauge([MemoryKey, <<"binary">>], bytes_to_megabytes(proplists:get_value(binary, Memory)), 1.00),
+    % statsderl:gauge([MemoryKey, <<"ets">>], bytes_to_megabytes(proplists:get_value(ets, Memory)), 1.00),
 
     % io stats
     IoStats = {IoInput2, IoOutput2} = io_stats(),
