@@ -14,7 +14,8 @@
     handle_cast/2,
     handle_info/2,
     code_change/3,
-    terminate/2
+    terminate/2,
+    get_optics_lenses/0
 ]).
 
 -define(DELAY, 1000).
@@ -72,44 +73,44 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
 
     % uptime
     Uptime = timer:now_diff(Timestamp2, Timestamp) / 60000000,
-    statsderl:gauge([BaseKey, <<"uptime_minutes">>], Uptime, 1.00),
+    log_gauge([BaseKey, <<"uptime_minutes">>], Uptime, 1.00),
 
     % processes
-    statsderl:gauge([BaseKey, <<"proc_count">>], erlang:system_info(process_count), 1.00),
-    statsderl:gauge([BaseKey, <<"proc_limit">>], erlang:system_info(process_limit), 1.00),
+    log_gauge([BaseKey, <<"proc_count">>], erlang:system_info(process_count), 1.00),
+    log_gauge([BaseKey, <<"proc_limit">>], erlang:system_info(process_limit), 1.00),
 
     % modules loaded
-    statsderl:gauge([BaseKey, <<"modules">>], length(code:all_loaded()), 1.00),
+    log_gauge([BaseKey, <<"modules">>], length(code:all_loaded()), 1.00),
 
     % run queue
-    statsderl:gauge([BaseKey, <<"run_queue">>], erlang:statistics(total_run_queue_lengths), 1.00),
+    log_gauge([BaseKey, <<"run_queue">>], erlang:statistics(total_run_queue_lengths), 1.00),
 
     % error_logger message queue length
     {_, MessageQueueLength} = process_info(whereis(error_logger), message_queue_len),
-    statsderl:gauge([BaseKey, <<"error_logger_queue_len">>], MessageQueueLength, 1.00),
+    log_gauge([BaseKey, <<"error_logger_queue_len">>], MessageQueueLength, 1.00),
 
     % vm memory usage
     MemoryKey = [BaseKey, <<"memory.">>],
     Memory = erlang:memory(),
-    statsderl:gauge([MemoryKey, <<"total">>], bytes_to_megabytes(proplists:get_value(total, Memory)), 1.00),
-    statsderl:gauge([MemoryKey, <<"procs_used">>], bytes_to_megabytes(proplists:get_value(processes_used, Memory)), 1.00),
-    statsderl:gauge([MemoryKey, <<"atom_used">>], bytes_to_megabytes(proplists:get_value(atom_used, Memory)), 1.00),
-    statsderl:gauge([MemoryKey, <<"binary">>], bytes_to_megabytes(proplists:get_value(binary, Memory)), 1.00),
-    statsderl:gauge([MemoryKey, <<"ets">>], bytes_to_megabytes(proplists:get_value(ets, Memory)), 1.00),
+    log_gauge([MemoryKey, <<"total">>], bytes_to_megabytes(proplists:get_value(total, Memory)), 1.00),
+    log_gauge([MemoryKey, <<"procs_used">>], bytes_to_megabytes(proplists:get_value(processes_used, Memory)), 1.00),
+    log_gauge([MemoryKey, <<"atom_used">>], bytes_to_megabytes(proplists:get_value(atom_used, Memory)), 1.00),
+    log_gauge([MemoryKey, <<"binary">>], bytes_to_megabytes(proplists:get_value(binary, Memory)), 1.00),
+    log_gauge([MemoryKey, <<"ets">>], bytes_to_megabytes(proplists:get_value(ets, Memory)), 1.00),
 
     % io stats
     IoStats = {IoInput2, IoOutput2} = io_stats(),
-    statsderl:increment([BaseKey, <<"io.bytes_in">>], IoInput2 - IoInput, 1.00),
-    statsderl:increment([BaseKey, <<"io.bytes_out">>], IoOutput2 - IoOutput, 1.00),
+    log_counter([BaseKey, <<"io.bytes_in">>], IoInput2 - IoInput, 1.00),
+    log_counter([BaseKey, <<"io.bytes_out">>], IoOutput2 - IoOutput, 1.00),
 
     % gc stats
     GCStats = {NumberGCs2, WordsReclaimed2, _} = gc_stats(),
-    statsderl:increment([BaseKey, <<"gc.count">>], NumberGCs2 - NumberGCs, 1.00),
-    statsderl:increment([BaseKey, <<"gc.words_reclaimed">>], WordsReclaimed2 - WordsReclaimed, 1.00),
+    log_counter([BaseKey, <<"gc.count">>], NumberGCs2 - NumberGCs, 1.00),
+    log_counter([BaseKey, <<"gc.words_reclaimed">>], WordsReclaimed2 - WordsReclaimed, 1.00),
 
     % reductions
     {_, Reductions} = erlang:statistics(reductions),
-    statsderl:increment([BaseKey, <<"reductions">>], Reductions, 1.00),
+    log_counter([BaseKey, <<"reductions">>], Reductions, 1.00),
 
     % system stats
     SystemStats2 = system_stats(BaseKey, SystemStats),
@@ -122,24 +123,24 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
 
     lists:map(fun ({SchedulerId, ShedulerUtil}) ->
         SchedulerIdBin = integer_to_binary(SchedulerId),
-        statsderl:gauge([BaseKey, <<"scheduler_utilization.">>, SchedulerIdBin], ShedulerUtil, 1.00)
+        dynamic_log_gauge([BaseKey, <<"scheduler_utilization.">>, SchedulerIdBin], ShedulerUtil, 1.00)
     end, ShedulerUtils),
 
   	% active_tasks
   	lists:foldl(fun(ActiveTasks, SchedulerId) ->
           SchedulerIdBin = integer_to_binary(SchedulerId),
-  		statsderl:gauge([BaseKey, <<"active_tasks.">>, SchedulerIdBin], ActiveTasks, 1.00),
+  		dynamic_log_gauge([BaseKey, <<"active_tasks.">>, SchedulerIdBin], ActiveTasks, 1.00),
   		SchedulerId + 1
   	end, 1, erlang:statistics(active_tasks)),
 
   	% run_queue_lengths
   	lists:foldl(fun(RunQueueLengths, SchedulerId) ->
           SchedulerIdBin = integer_to_binary(SchedulerId),
-  		statsderl:gauge([BaseKey, <<"run_queue_lengths.">>, SchedulerIdBin], RunQueueLengths, 1.00),
+  		dynamic_log_gauge([BaseKey, <<"run_queue_lengths.">>, SchedulerIdBin], RunQueueLengths, 1.00),
   		SchedulerId + 1
   	end, 1, erlang:statistics(run_queue_lengths)),
 
-    statsderl:timing_now([BaseKey, "server_timing"], Timestamp2, 1.00),
+    log_timing([BaseKey, "server_timing"], Timestamp2, 1.00),
 
     Delta = unix_tstamp_ms() rem ?DELAY,
 
@@ -194,22 +195,22 @@ system_stats(BaseKey, SystemStats) ->
         _Else ->
             % system load
             SystemStats2 = system_stats:proc_loadavg(SystemStats),
-            statsderl:gauge([BaseKey, <<"system.load_1">>], SystemStats2#stats.load_1, 1.00),
-            statsderl:gauge([BaseKey, <<"system.load_5">>], SystemStats2#stats.load_5, 1.00),
-            statsderl:gauge([BaseKey, <<"system.load_15">>], SystemStats2#stats.load_15, 1.00),
+            log_gauge([BaseKey, <<"system.load_1">>], SystemStats2#stats.load_1, 1.00),
+            log_gauge([BaseKey, <<"system.load_5">>], SystemStats2#stats.load_5, 1.00),
+            log_gauge([BaseKey, <<"system.load_15">>], SystemStats2#stats.load_15, 1.00),
 
             % system cpu %
             SystemStats3 = system_stats:proc_pidstat(os:getpid(), SystemStats2),
             SystemStats4 = system_stats:proc_stat(SystemStats3),
             {CpuUser, CpuSystem} = system_stats_utils:cpu_percent(SystemStats, SystemStats4),
             CpuPercent = trunc(SystemStats4#stats.cpu_cores * (CpuUser + CpuSystem)),
-            statsderl:gauge([BaseKey, <<"system.cpu_percent">>], CpuPercent, 1.00),
+            log_gauge([BaseKey, <<"system.cpu_percent">>], CpuPercent, 1.00),
 
             % system memory
             Vsize = trunc(bytes_to_megabytes(SystemStats4#stats.mem_vsize)),
             Rss = trunc(bytes_to_megabytes(?PAGE_SIZE * (SystemStats4#stats.mem_rss))),
-            statsderl:gauge([BaseKey, <<"system.vsize">>], Vsize, 1.00),
-            statsderl:gauge([BaseKey, <<"system.rss">>], Rss, 1.00),
+            log_gauge([BaseKey, <<"system.vsize">>], Vsize, 1.00),
+            log_gauge([BaseKey, <<"system.rss">>], Rss, 1.00),
 
             SystemStats4
     end.
@@ -217,3 +218,57 @@ system_stats(BaseKey, SystemStats) ->
 unix_tstamp_ms() ->
     {Mega, Sec, Micro} = os:timestamp(),
     (Mega * 1000000000 + Sec * 1000) + trunc(Micro / 1000).
+
+dynamic_log_gauge(Key, Val, Rate) ->
+    statsderl:gauge(Key, Val, Rate),
+    erl_optics:gauge_set_alloc(list_to_binary(Key), Val).
+
+log_gauge(Key, Val, Rate) ->
+    statsderl:gauge(Key, Val, Rate),
+    erl_optics:gauge_set(list_to_binary(Key), Val).
+
+log_counter(Key, Val, Rate) ->
+    statsderl:timing(Key, Val, Rate),
+    erl_optics:counter_inc(list_to_binary(Key), Val).
+
+log_timing(Key, Val, Rate) ->
+    statsderl:timing(Key, Val, Rate),
+    erl_optics:dist_record(list_to_binary(Key), Val).
+
+get_optics_lenses() ->
+    BaseKey = case application:get_env(vmstats, base_key) of
+        {ok, Key} -> <<Key/binary, $.>>;
+        undefined -> <<"">>
+    end,
+    MemoryKey = <<BaseKey/binary, "memory.">>,
+
+    BaseGauges = [<<"uptime_minutes">>,
+                  <<"proc_count">>,
+                  <<"proc_limit">>,
+                  <<"modules">>,
+                  <<"run_queue">>,
+                  <<"error_logger_queue_len">>,
+                  <<"system.load_1">>,
+                  <<"system.load_5">>,
+                  <<"system.load_15">>,
+                  <<"system.cpu_percent">>,
+                  <<"system.vsize">>,
+                  <<"system.rss">>],
+    BaseGaugeLenses = [erl_optics_lens:gauge(<<BaseKey/binary, GaugeKey/binary>>) || GaugeKey <- BaseGauges],
+
+    MemoryGauges = [<<"total">>,
+                    <<"procs_used">>,
+                    <<"atom_used">>,
+                    <<"binary">>,
+                    <<"ets">>],
+    MemoryGaugeLenses = [erl_optics_lens:gauge(<<MemoryKey/binary, GaugeKey/binary>>) || GaugeKey <- MemoryGauges],
+
+    BaseCounters = [<<"io.bytes_in">>,
+                    <<"io.bytes_out">>,
+                    <<"gc.count">>,
+                    <<"gc.words_reclaimed">>,
+                    <<"reductions">>],
+    BaseCounterLenses = [erl_optics_lens:counter(<<BaseKey/binary, CounterKey/binary>>) || CounterKey <- BaseCounters],
+
+    {ok, lists:flatten([BaseGaugeLenses, MemoryGaugeLenses, BaseCounterLenses,
+         erl_optics_lens:dist(<<BaseKey/binary, "server_timing">>)])}.
