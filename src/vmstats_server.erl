@@ -228,11 +228,11 @@ log_gauge(Key, Val, Rate) ->
     erl_optics:gauge_set(list_to_binary(Key), Val).
 
 log_counter(Key, Val, Rate) ->
-    statsderl:timing(Key, Val, Rate),
+    statsderl:increment(Key, Val, Rate),
     erl_optics:counter_inc(list_to_binary(Key), Val).
 
 log_timing(Key, Val, Rate) ->
-    statsderl:timing(Key, Val, Rate),
+    statsderl:timing_now(Key, Val, Rate),
     erl_optics:dist_record(list_to_binary(Key), Val).
 
 get_optics_lenses() ->
