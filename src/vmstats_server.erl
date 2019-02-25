@@ -233,7 +233,7 @@ log_counter(Key, Val, Rate) ->
 
 log_timing(Key, Val, Rate) ->
     statsderl:timing_now(Key, Val, Rate),
-    erl_optics:dist_record(list_to_binary(Key), Val).
+    erl_optics:dist_record_timing_now(list_to_binary(Key), Val).
 
 get_optics_lenses() ->
     BaseKey = case application:get_env(vmstats, base_key) of
