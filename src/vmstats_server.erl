@@ -24,7 +24,7 @@
 
 -record(state, {
     tstamp :: erlang:timestamp(),
-    base_key :: iolist(),
+    base_key :: iolist() | binary(),
     gc_stats :: {NumberGcs::integer(), WordsReclaimed::integer(), 0},
     io_stats :: {Input::integer(), Output::integer()},
     scheduler_stats,
@@ -38,10 +38,7 @@ start_link() ->
 
 %% private
 init([]) ->
-    BaseKey = case application:get_env(vmstats, base_key) of
-        {ok, Key} -> [Key, $.];
-        undefined -> <<"">>
-    end,
+    BaseKey = basekey(),
 
     {ok, #state {
         tstamp = os:timestamp(),
@@ -78,6 +75,9 @@ handle_info({timeout, TimerRef, ?TIMER_MSG}, #state {
     % processes
     log_gauge([BaseKey, <<"proc_count">>], erlang:system_info(process_count), 1.00),
     log_gauge([BaseKey, <<"proc_limit">>], erlang:system_info(process_limit), 1.00),
+
+    % messages in queues
+    %log_gauge([BaseKey, <<"messages_in_queues">>], message_in_queues(), 1.00),
 
     % modules loaded
     log_gauge([BaseKey, <<"modules">>], length(code:all_loaded()), 1.00),
@@ -235,16 +235,25 @@ log_timing(Key, Val, Rate) ->
     statsderl:timing_now(Key, Val, Rate),
     erl_optics:dist_record_timing_now(list_to_binary(Key), Val).
 
-get_optics_lenses() ->
-    BaseKey = case application:get_env(vmstats, base_key) of
+-spec basekey() -> binary().
+
+basekey() ->
+    case application:get_env(vmstats, base_key) of
         {ok, Key} -> <<Key/binary, $.>>;
         undefined -> <<"">>
-    end,
-    MemoryKey = <<BaseKey/binary, "memory.">>,
+    end.
+
+memorykey() ->
+    <<(basekey())/binary, "memory.">>.
+
+get_optics_lenses() ->
+    BaseKey = basekey(),
+    MemoryKey = memorykey(),
 
     BaseGauges = [<<"uptime_minutes">>,
                   <<"proc_count">>,
                   <<"proc_limit">>,
+                  <<"messages_in_queues">>,
                   <<"modules">>,
                   <<"run_queue">>,
                   <<"error_logger_queue_len">>,
