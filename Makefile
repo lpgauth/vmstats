@@ -1,4 +1,4 @@
-REBAR=./rebar
+REBAR=./rebar3
 
 .PHONY: deps
 
@@ -15,4 +15,4 @@ compile:
 deps:
 	@echo "Running rebar get-deps..."
 	@$(REBAR) get-deps
-	@$(REBAR) update-deps
+	@$(REBAR) update

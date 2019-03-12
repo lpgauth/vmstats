@@ -1,0 +1,20 @@
+{"1.1.0",
+[{<<"erl_optics">>,
+  {git,"https://github.com/rkallos/erl-optics.git",
+       {ref,"336758015e702f9bebfe9fddfcdfc6383b68fc06"}},
+  0},
+ {<<"foil">>,{pkg,<<"foil">>,<<"0.1.1">>},1},
+ {<<"metal">>,{pkg,<<"metal">>,<<"0.1.1">>},2},
+ {<<"statsderl">>,
+  {git,"https://github.com/lpgauth/statsderl.git",
+       {ref,"2aa93d90244502da9b145f2c579ddc5865c1c44f"}},
+  0},
+ {<<"system_stats">>,
+  {git,"https://github.com/lpgauth/system-stats.git",
+       {ref,"8d34ffc0960aca68a39b0bd0ef142052baa75e35"}},
+  0}]}.
+[
+{pkg_hash,[
+ {<<"foil">>, <<"4D07B62C114636BBC3EEBD5CEE04B23A7AAB1262B0F68AA79005A6FBC3790472">>},
+ {<<"metal">>, <<"5D3D1322DA7BCD34B94FED5486F577973685298883954F7A3E517EF5EF6953F5">>}]}
+].
